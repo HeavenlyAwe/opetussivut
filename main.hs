@@ -3,6 +3,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
+
 ------------------------------------------------------------------------------
 -- | 
 -- Module         : Main
@@ -12,9 +13,16 @@
 -- Stability      : experimental
 -- Portability    : non-portable
 -- 
--- See config.yaml for configuration.
+-- This application is used to automatically generate web page bodies listing the available courses at the department of physics at the University of Helsinki. The data is parsed from a confluence Wiki Source Table containing the information needed to either directly generate the list or lookup more information from different web sites.
+--
+-- The application takes into consideration internationalization (I18N) for at least Finnish, Swedish and English, more languages might be supported in the future.
+--
+-- The user guide for operating the software can be found at <https://github.com/SimSaladin/opetussivut>
+--
+-- See config.yaml for configuration options.
 --
 ------------------------------------------------------------------------------
+
 module Main where
 
 -- TODO: Remove the unused import?
@@ -58,6 +66,7 @@ import           GHC.Generics
 categoryLevelTaso :: Int
 categoryLevelTaso = 1
 
+-- | The entry point of the application.
 main :: IO ()
 main = Yaml.decodeFileEither "config.yaml" >>= either (error . show) (runReaderT go)
     where
@@ -78,17 +87,20 @@ main = Yaml.decodeFileEither "config.yaml" >>= either (error . show) (runReaderT
 
 
 type M = ReaderT Config IO
+
+-- | The 'Lang' type is used as key for looking up the translations from the internationalization (I18N) data base found in the /config.yaml/ file.
 type Lang = Text -- ^ en, se, fi, ...
 
-data PageConf = PageConf {   -- | Note [Config and PageConf]
+-- | Properties for generating individual web page bodies.
+data PageConf = PageConf {  -- See Note [Config and PageConf] below
               -- Faculty webpage properties
                 pageId          :: String
               , pageUrl         :: Map Lang Text
               , pageTitle       :: Map Lang Text
               } deriving Generic
 instance Yaml.FromJSON PageConf
-              
-data Config   = Config {    -- | Note [Config and PageConf]
+
+data Config   = Config {    -- See Note [Config and PageConf] below
               -- File handling properties
                 rootDir         :: FilePath
               , cacheDir        :: FilePath
@@ -113,15 +125,19 @@ data Config   = Config {    -- | Note [Config and PageConf]
               } deriving Generic
 instance Yaml.FromJSON Config
 
-data Table        = Table UTCTime [Header] [Course]       -- ^ Source table
+data Table        = Table UTCTime [Header] [Course]
                     deriving (Show, Read)
-type Header       = Text                                  -- ^ Column headers in source table
+-- ^ Source table. Consists of a time stamp, a list of 'Header' objects and a list of 'Course' objects.
+
+type Header       = Text
+-- ^ Extension of 'Data.Text' Used as Column headers when reading the source table
+
 type Course       = ([Category], Map Header ContentBlock) -- ^ A row in source table
 type Category     = Text                                  -- ^ First column in source table
 type ContentBlock = Text                                  -- ^ td in source table
 type I18N         = Map Text (Map Lang Text)
 
-{-| Note [Config and PageConf]
+{- Note [Config and PageConf]
     
     = Config
     The 'Config' data type is used to read the configuration properties from
