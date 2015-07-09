@@ -80,8 +80,7 @@ main = Yaml.decodeFileEither "config.yaml" >>= either (error . show) (runReaderT
 type M = ReaderT Config IO
 type Lang = Text -- ^ en, se, fi, ...
 
-data PageConf = PageConf    -- | Note [Config and PageConf]
-              { 
+data PageConf = PageConf {   -- | Note [Config and PageConf]
               -- Faculty webpage properties
                 pageId          :: String
               , pageUrl         :: Map Lang Text
@@ -89,8 +88,7 @@ data PageConf = PageConf    -- | Note [Config and PageConf]
               } deriving Generic
 instance Yaml.FromJSON PageConf
               
-data Config   = Config      -- | Note [Config and PageConf]
-              { 
+data Config   = Config {    -- | Note [Config and PageConf]
               -- File handling properties
                 rootDir         :: FilePath
               , cacheDir        :: FilePath
@@ -123,14 +121,14 @@ type Category     = Text                                  -- ^ First column in s
 type ContentBlock = Text                                  -- ^ td in source table
 type I18N         = Map Text (Map Lang Text)
 
-{- Note [Config and PageConf]
+{-| Note [Config and PageConf]
     
-    =Config
+    = Config
     The 'Config' data type is used to read the configuration properties from
-    the 'config.yaml' file. It holds references to all of the different property
+    the /config.yaml/ file. It holds references to all of the different property
     fields and are accessed by their name in the config.yaml file.
     
-    =PageConf
+    = PageConf
     The 'PageConf' data type is used as a data holder for page information
     of the generated web pages. Where they are stored, what their titles are
     etc.
