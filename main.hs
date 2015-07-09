@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 module Main where
 
+-- TODO: Remove the unused import?
 -- import Prelude
 import           Control.Monad
 import           Control.Applicative
@@ -70,34 +71,38 @@ main = Yaml.decodeFileEither "config.yaml" >>= either (error . show) (runReaderT
                   table <- parseTable dt'
                   forM_ languages $ \lang -> renderTable rootDir lang pc table
 
+
+-- ***************************************************************************
 -- * Types
+-- ***************************************************************************
+
 
 type M = ReaderT Config IO
 type Lang = Text -- ^ en, se, fi, ...
 
-data PageConf = PageConf
+data PageConf = PageConf    -- | Note [Config and PageConf]
               { 
-              -- | Faculty webpage properties
+              -- Faculty webpage properties
                 pageId          :: String
               , pageUrl         :: Map Lang Text
               , pageTitle       :: Map Lang Text
               } deriving Generic
 instance Yaml.FromJSON PageConf
               
-data Config   = Config 
+data Config   = Config      -- | Note [Config and PageConf]
               { 
-              -- | File handling properties
+              -- File handling properties
                 rootDir         :: FilePath
               , cacheDir        :: FilePath
               , fetchUrl        :: String
               , weboodiUrl      :: Text
               , oodiNameFile    :: FilePath
-              -- | Page generation properties
+              -- Page generation properties
               , languages       :: [Lang]
               , pages           :: [PageConf]
-              -- | Internationalization properties
+              -- Internationalization properties
               , i18n            :: I18N
-              -- | Wiki Table properties
+              -- Wiki Table properties
               , categories      :: [[Text]]
               , colCode         :: Text
               , colLang         :: Text
@@ -131,7 +136,11 @@ type I18N         = Map Text (Map Lang Text)
     etc.
 -}
 
--- * Utility
+
+-- ***************************************************************************
+-- * Utility functions
+-- ***************************************************************************
+
 
 toUrlPath :: Text -> Text
 toUrlPath  = (<> ".html")
@@ -163,7 +172,11 @@ normalize =
     . T.replace "ILMOITTAUTUMINEN PUUTTUU" ""
     . T.unwords . map (T.unwords . T.words) . T.lines
 
+
+-- ***************************************************************************
 -- * Weboodi stuff
+-- ***************************************************************************
+
 
 getOodiName :: Text -> Maybe Text
 getOodiName = fmap (T.pack
@@ -227,14 +240,20 @@ i18nCourseNameFromOodi lang pid = do
                     return $ Just name
 
 
+-- ***************************************************************************
 -- * Rendering
+-- ***************************************************************************
+
 
 renderTable :: FilePath -> Lang -> PageConf -> Table -> M ()
 renderTable root lang pc@PageConf{..} table =
     ask >>= lift . LT.writeFile fp . renderMarkup . tableBody lang pc table
   where fp = toFilePath root $ lookup' lang pageUrl
 
+
+-- ***************************************************************************
 -- * Content
+-- ***************************************************************************
 
 -- | How to render the data
 tableBody :: Lang -> PageConf -> Table -> Config -> Html
@@ -433,7 +452,11 @@ updateHiddenDivs = function() {
 }
 |]
 
+
+-- ***************************************************************************
 -- * Courses and categories
+-- ***************************************************************************
+
 
 toCourse :: Config -> [Category] -> [Header] -> Bool -> [Text] -> Course
 toCourse Config{..} cats hs iscur xs =
@@ -494,8 +517,12 @@ getThingMaybe k (_, c) = Map.lookup k c
 getThingLang :: I18N -> Lang -> Text -> Course -> Text
 getThingLang db lang key c = fromMaybe (getThing key c) $ getThingMaybe (toLang db lang key) c
 
+
+-- ***************************************************************************
 -- * Get source
-    
+-- ***************************************************************************
+
+
 parseSettings :: XML.ParseSettings
 parseSettings = XML.def { XML.psDecodeEntities = XML.decodeHtmlEntities }
 
@@ -523,7 +550,11 @@ cleanAndParse = XML.parseText_ parseSettings . LT.pack . foldl1 (.) regexes . LT
 fetch8859 :: String -> IO Text
 fetch8859 url = LT.toStrict . LT.decodeUtf8 . convert "iso-8859-1" "utf-8" <$> simpleHttp url
 
+
+-- ***************************************************************************
 -- * Parse doc
+-- ***************************************************************************
+
 
 parseTable :: XML.Document -> M Table
 parseTable doc = head . catMaybes . findTable (fromDocument doc) <$> ask
