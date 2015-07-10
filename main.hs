@@ -13,9 +13,14 @@
 -- Stability      : experimental
 -- Portability    : non-portable
 -- 
--- This application is used to automatically generate web page bodies listing the available courses at the department of physics at the University of Helsinki. The data is parsed from a confluence Wiki Source Table containing the information needed to either directly generate the list or lookup more information from different web sites.
+-- This application is used to automatically generate web page bodies listing
+-- the available courses at the department of physics at the University of Helsinki.
+-- The data is parsed from a confluence Wiki Source Table containing the information
+-- needed to either directly generate the list or lookup more information from
+-- different web sites.
 --
--- The application takes into consideration internationalization (I18N) for at least Finnish, Swedish and English, more languages might be supported in the future.
+-- The application takes into consideration internationalization (I18N) for at
+-- least Finnish, Swedish and English, more languages might be supported in the future.
 --
 -- The user guide for operating the software can be found at <https://github.com/SimSaladin/opetussivut>
 --
@@ -92,9 +97,11 @@ main = Yaml.decodeFileEither "config.yaml" >>= either (error . show) (runReaderT
 -- | Short hand for the combination of the other three types.
 type M = ReaderT Config IO
 
--- | The 'Lang' type is used as key for looking up the translations from the internationalization (I18N) data base found in the /config.yaml/ file.
+-- | The 'Lang' type is used as key for looking up the translations from the
+-- internationalization (I18N) data base found in the /config.yaml/ file.
+--
+-- It is used with acronyms of the languages: @fi@, @se@, @en@, ...
 type Lang = Text
--- ^ en, se, fi, ...
 
 -- | Properties for generating individual web page bodies.
 data PageConf = PageConf {  -- See Note [Config and PageConf] below
@@ -176,7 +183,8 @@ toUrlPath :: Text   -- ^ Argument: The URL without /.html/
 toUrlPath  = (<> ".html")
 
 
--- | Prepends the argument with the value of the /root/ parameter, and appends /.body/ to the end of the argument.
+-- | Prepends the argument with the value of the /root/ parameter,
+-- and appends /.body/ to the end of the argument.
 --
 -- > root <> arg <> .body
 toFilePath :: FilePath -> Text -> FilePath
@@ -195,7 +203,10 @@ regexes = [ rm "<meta [^>]*>", rm "<link [^>]*>", rm "<link [^>]*\">", rm "<img 
 
 -- | Fetch a translation from the I18N database, /db/, found in /config.yaml/.
 --
--- If the text that is to be translated can't be found in the given database. It'll fall back on the given text. If the selected language in this case is not Finnish it will also warn the user that no translation for the selected text can be found.
+-- If the text that is to be translated can't be found in the given database.
+-- It'll fall back on the given text. If the selected language in this case is
+-- not Finnish it will also warn the user that no translation for the selected
+-- text can be found.
 toLang :: I18N  -- ^ Argument: The database to fetch from
        -> Lang  -- ^ Argument: The language to fetch translation for
        -> Text  -- ^ Argument: The text to translate
@@ -206,7 +217,8 @@ toLang db lang key = maybe (trace ("Warn: no i18n db for key `" ++ T.unpack key 
                  | otherwise    = trace ("Warn: no i18n for key `" ++ T.unpack key ++ "' with lang `" ++ T.unpack lang ++ "'") key
 
 
--- | Lookup a translation from any given map of text, containing 'y' types mapped to 'Lang' types. It only returns 'Just' values of the result.
+-- | Lookup a translation from any given map of text, containing 'y' types
+-- mapped to 'Lang' types. It only returns 'Just' values of the result.
 lookup' :: Lang         -- ^ Argument: The language to look for
         -> Map Lang y   -- ^ Argument: A map to fetch type 'y' from
         -> y            -- ^ Return:   The value of type 'y' found in the map
@@ -250,16 +262,18 @@ getOodiName =
 
 
 -- | Helper method to select the correct language when using WebOodi.
+-- The language is changed by switching a number in the URL:
 --
--- Access the different language versions by switching a number in the URL:
+--      * 1 : fi (Finnish version)
 --
---      * Finnish version: __1__
---      * Swedish version: __2__
---      * English version: __6__
+--      * 2 : se (Swedish version)
 --
--- If another language than the provided ones is used, the function returns an empty string instead of a number.
-weboodiLang :: Lang     -- ^ The 'Lang' to use on WebOodi.
-            -> Text     -- ^ Return:  A number to append to the WebOodi URL when a specific language is used.
+--      * 6 : en (English version)
+--
+-- If another language than the provided ones is used, the function
+-- returns an empty string instead of a number.
+weboodiLang :: Lang     -- ^ The 'Lang' to use on WebOodi
+            -> Text     -- ^ Return:  The number to switch to in the WebOodi URL
 weboodiLang lang
             | "fi" <- lang = "1"
             | "se" <- lang = "2"
