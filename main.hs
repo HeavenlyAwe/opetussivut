@@ -228,37 +228,62 @@ normalize =
 -- ===========================================================================
 
 
-getOodiName :: Text -> Maybe Text
-getOodiName = fmap (T.pack
-                   . sub "&aring;" "å"
-                   . sub "&auml;" "ä"
-                   . sub "&Aring;" "Å"
-                   . sub "&Auml;" "Ä"
-                   . sub "&ouml;" "ö"
-                   . sub "&Ouml;" "Å"
-                   . sub "&#x3a;" ":"
-                   . sub "&#x27;" "'"
-                   . sub "&#x28;" "("
-                   . sub "&#x29;" ")"
-                   . sub "&#x3b;" ";"
-                   . head)
-            . matchRegex (mkRegexWithOpts s True False) . T.unpack
-    where s = "tauluotsikko\"?>[0-9 ]*(.*),[^,]*<"
-          sub a b i = subRegex (mkRegexWithOpts a False True) i b
+-- | Fetch the course name from the WebOodi url.
+getOodiName :: Text         -- ^ Argument: 
+            -> Maybe Text   -- ^ Return:   
+getOodiName =
+    fmap (T.pack
+          . sub "&aring;" "å"
+          . sub "&Aring;" "Å"
+          . sub "&auml;" "ä"
+          . sub "&Auml;" "Ä"
+          . sub "&ouml;" "ö"
+          . sub "&Ouml;" "Ö"
+          . sub "&#x3a;" ":"
+          . sub "&#x27;" "'"
+          . sub "&#x28;" "("
+          . sub "&#x29;" ")"
+          . sub "&#x3b;" ";"
+          . head) . matchRegex (mkRegexWithOpts s True False) . T.unpack
+  where s         = "tauluotsikko\"?>[0-9 ]*(.*),[^,]*<"
+        sub a b i = subRegex (mkRegexWithOpts a False True) i b
 
-weboodiLang :: Lang -> Text
-weboodiLang "fi" = "1"
-weboodiLang "se" = "2"
-weboodiLang "en" = "6"
-weboodiLang _    = ""
 
-weboodiLink :: Text -> Lang -> Text -> Text
+-- | Helper method to select the correct language when using WebOodi.
+--
+-- Access the different language versions by switching a number in the URL:
+--
+--      * Finnish version: __1__
+--      * Swedish version: __2__
+--      * English version: __6__
+--
+-- If another language than the provided ones is used, the function returns an empty string instead of a number.
+weboodiLang :: Lang     -- ^ The 'Lang' to use on WebOodi.
+            -> Text     -- ^ Return:  A number to append to the WebOodi URL when a specific language is used.
+weboodiLang lang
+            | "fi" <- lang = "1"
+            | "se" <- lang = "2"
+            | "en" <- lang = "6"
+            | otherwise    = ""
+
+
+-- TODO: Change the example to use the real base URL found in the config.yaml file
+-- | Creates a hyperlink to use for accessing the selected language version of WebOodi.
+--
+-- The return value has the form of: /[base URL][1/2/6]"&Tunniste="[page ID]/.
+weboodiLink :: Text     -- ^ Argument: The base URL of WebOodi
+            -> Lang     -- ^ Argument: Language to use on WebOodi
+            -> Text     -- ^ Argument: WebOodi page ID
+            -> Text     -- ^ Return:   The concatenated URL
 weboodiLink url lang pid = url <> weboodiLang lang <> "&Tunniste=" <> pid
 
+
+-- TODO: What does it do?
 oodiVar :: MVar (Map (Lang, Text) Text)
 oodiVar = unsafePerformIO newEmptyMVar
 {-# NOINLINE oodiVar #-}
-     
+
+
 readOodiNames :: M (Map (Lang, Text) Text)
 readOodiNames = do
     Config{..} <- ask
@@ -266,6 +291,7 @@ readOodiNames = do
     if exists
         then liftIO $ read <$> readFile oodiNameFile
         else return Map.empty
+
 
 i18nCourseNameFromOodi :: Lang -> Text -> M (Maybe Text)
 i18nCourseNameFromOodi lang pid = do
