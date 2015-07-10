@@ -62,11 +62,17 @@ import           System.Environment (getArgs)
 import           System.Directory
 import           GHC.Generics
 
+
 -- TODO: hard-coded level switch for "Taso" in categories configuration option
 categoryLevelTaso :: Int
 categoryLevelTaso = 1
 
--- | The entry point of the application.
+
+{-| The entry point of the application.
+
+    It reads the /config.yaml/ file into memory before doing anything else.
+    
+-}
 main :: IO ()
 main = Yaml.decodeFileEither "config.yaml" >>= either (error . show) (runReaderT go)
     where
@@ -85,11 +91,12 @@ main = Yaml.decodeFileEither "config.yaml" >>= either (error . show) (runReaderT
 -- * Types
 -- ***************************************************************************
 
-
+-- | Short hand for the combination of the other three types.
 type M = ReaderT Config IO
 
 -- | The 'Lang' type is used as key for looking up the translations from the internationalization (I18N) data base found in the /config.yaml/ file.
-type Lang = Text -- ^ en, se, fi, ...
+type Lang = Text
+-- ^ en, se, fi, ...
 
 -- | Properties for generating individual web page bodies.
 data PageConf = PageConf {  -- See Note [Config and PageConf] below
@@ -125,17 +132,26 @@ data Config   = Config {    -- See Note [Config and PageConf] below
               } deriving Generic
 instance Yaml.FromJSON Config
 
+-- | Source table. Consists of a time stamp, a list of 'Header' objects and a list of 'Course' objects.
 data Table        = Table UTCTime [Header] [Course]
                     deriving (Show, Read)
--- ^ Source table. Consists of a time stamp, a list of 'Header' objects and a list of 'Course' objects.
 
+-- | Extension of 'Data.Text'. Used as Column headers when reading the source table.
 type Header       = Text
--- ^ Extension of 'Data.Text' Used as Column headers when reading the source table
 
-type Course       = ([Category], Map Header ContentBlock) -- ^ A row in source table
-type Category     = Text                                  -- ^ First column in source table
-type ContentBlock = Text                                  -- ^ td in source table
+-- TODO: Change the name of this type to fit its purpose more
+-- | A row in source table.
+type Course       = ([Category], Map Header ContentBlock)
+
+-- | Extension of 'Data.Text'. First column in source table.
+type Category     = Text
+
+-- | \<td\> HTML tag in source table.
+type ContentBlock = Text
+
+-- | Internationalization database.
 type I18N         = Map Text (Map Lang Text)
+
 
 {- Note [Config and PageConf]
     
@@ -156,11 +172,18 @@ type I18N         = Map Text (Map Lang Text)
 -- ***************************************************************************
 
 
-toUrlPath :: Text -> Text
+-- | Appends /.html/ to the end of the argument.
+toUrlPath :: Text   -- ^ Argument: The URL without /.html/
+          -> Text   -- ^ Return:   The URL with /.html/ at the end
 toUrlPath  = (<> ".html")
 
+
+-- | Prepends the argument with the value of the /root/ parameter, and appends /.body/ to the end of the argument.
+--
+-- > root <> arg <> .body
 toFilePath :: FilePath -> Text -> FilePath
 toFilePath root = (root <>) . T.unpack . (<> ".body")
+
 
 -- | A hack, for confluence html is far from the (strictly) spec.
 --
