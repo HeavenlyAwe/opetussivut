@@ -79,16 +79,16 @@ categoryLevelTaso = 1
 -- It reads the /config.yaml/ file into memory before doing anything else.
 main :: IO ()
 main = Yaml.decodeFileEither "config.yaml" >>= either (error . show) (runReaderT go)
-    where
-  go = do
-      Config{..} <- ask
-      forM_ pages $ \pc@PageConf{..} -> do
-          dt <- getData pageId
-          case dt of
-              Nothing -> liftIO $ putStrLn "Warning: failed to fetch doc, not updating listing"
-              Just dt' -> do
-                  table <- parseTable dt'
-                  forM_ languages $ \lang -> renderTable rootDir lang pc table
+  where
+    go = do
+        Config{..} <- ask
+        forM_ pages $ \pc@PageConf{..} -> do
+            dt <- getData pageId
+            case dt of
+                Nothing -> liftIO $ putStrLn "Warning: failed to fetch doc, not updating listing"
+                Just dt' -> do
+                    table <- parseTable dt'
+                    forM_ languages $ \lang -> renderTable rootDir lang pc table
 
 
 -- ===========================================================================
@@ -640,9 +640,10 @@ doLang = T.replace "suomi" "fi" . T.replace "eng" "en" . T.replace "englanti" "e
        . T.replace "," " " . T.replace "." " " . T.replace "/" " " . T.toLower
 
 
+-- TODO: Understand what this code exactly does.
 -- | Accumulate a 'Category' to a list of 'Category's based on what categories
--- cannot overlap
-accumCategory :: Config         -- ^ Argument: 
+-- cannot overlap.
+accumCategory :: Config         -- ^ Argument:
               -> Category       -- ^ Argument: 
               -> [Category]     -- ^ Argument: 
               -> [Category]     -- ^ Return:   
@@ -788,9 +789,13 @@ processTable cnf c = case cells of
     cells = map ($/ anyElement) (c $// element "tr")
 
 
--- | A row is either a category or course. The @['Category']@ is used as an
+-- | A row is either a category or a course. The @['Category']@ is used as an
 -- accumulator.
-getRow :: Config -> [Header] -> [Category] -> [Cursor] -> ([Category], Maybe Course)
+getRow :: Config                        -- ^ Argument: 
+       -> [Header]                      -- ^ Argument: 
+       -> [Category]                    -- ^ Argument: 
+       -> [Cursor]                      -- ^ Argument: 
+       -> ([Category], Maybe Course)    -- ^ Return:   
 getRow cnf@Config{..} hs cats cs = map (T.unwords . ($// content)) cs `go` head (cs !! 1 $| attribute "class")
     where go []        _       = (cats, Nothing)
           go (mc : vs) classes = case toCategory cnf mc of
