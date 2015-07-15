@@ -312,7 +312,7 @@ weboodiLink :: Text     -- ^ Argument: The base URL of WebOodi.
             -> Lang     -- ^ Argument: Language to use on WebOodi.
             -> Text     -- ^ Argument: WebOodi page ID.
             -> Text     -- ^ Return:   The concatenated URL.
-weboodiLink url lang pid = url <> weboodiLang lang <> "&Tunniste=" <> pid
+weboodiLink url lang pageId = url <> weboodiLang lang <> "&Tunniste=" <> pageId
 
 
 -- TODO: What does it do?
@@ -338,9 +338,9 @@ readOodiNames = do
 --
 --
 i18nCourseNameFromOodi :: Lang              -- ^ Argument: The 'Lang'uage to lookup.
-                       -> Text              -- ^ Argument: The page ID of the WebOodi page.
+                       -> Text              -- ^ Argument: The WebOodi page ID.
                        -> M (Maybe Text)    -- ^ Return:   The translation if found.
-i18nCourseNameFromOodi lang pid = do
+i18nCourseNameFromOodi lang pageId = do
     Config{..} <- ask
 
     ov <- liftIO $ tryTakeMVar oodiVar
@@ -349,14 +349,14 @@ i18nCourseNameFromOodi lang pid = do
         Nothing -> readOodiNames
     liftIO $ putMVar oodiVar oodiNames
 
-    case Map.lookup (lang, pid) oodiNames of
+    case Map.lookup (lang, pageId) oodiNames of
         Just name -> return $ Just name
         Nothing   -> do
-            raw <- liftIO $ fetch8859 (T.unpack $ weboodiLink weboodiUrl lang pid)
+            raw <- liftIO $ fetch8859 (T.unpack $ weboodiLink weboodiUrl lang pageId)
             case getOodiName raw of
                 Nothing   -> return Nothing
                 Just name -> do
-                    let newNames = Map.insert (lang, pid) name oodiNames
+                    let newNames = Map.insert (lang, pageId) name oodiNames
                     liftIO $ do _ <- swapMVar oodiVar newNames
                                 writeFile oodiNameFile (show newNames)
                     return $ Just name
@@ -727,15 +727,15 @@ parseSettings = XML.def { XML.psDecodeEntities = XML.decodeHtmlEntities }
 -- | Fetch a confluence doc by id.
 getData :: String                   -- ^ Argument: 
         -> M (Maybe XML.Document)   -- ^ Return: 
-getData pid = do
+getData pageId = do
     Config{..} <- ask
     xs         <- lift getArgs
-    let file   = cacheDir <> "/" <> pid <> ".html"
+    let file   = cacheDir <> "/" <> pageId <> ".html"
 
     str <- lift $ case xs of
         "cache" : _ -> Just <$> LT.readFile file
-        "fetch" : _ -> do liftIO . putStrLn $ "Fetching doc id " <> show pid
-                          r <- LT.decodeUtf8 <$> simpleHttp (fetchUrl ++ pid)
+        "fetch" : _ -> do liftIO . putStrLn $ "Fetching doc id " <> show pageId
+                          r <- LT.decodeUtf8 <$> simpleHttp (fetchUrl ++ pageId)
                           if "<title>Log In" `LT.isInfixOf` r
                               then return Nothing
                               else LT.writeFile file r >> return (Just r)
