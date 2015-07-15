@@ -102,7 +102,7 @@ type M = ReaderT Config IO
 
 
 -- | The 'Lang' type is used as key for looking up the translations from the
--- internationalization (I18N) data base found in the /config.yaml/ file.
+-- internationalization ('I18N') database found in the /config.yaml/ file.
 --
 -- It is used with acronyms of the languages: @fi@, @se@, @en@, ...
 type Lang = Text
@@ -261,9 +261,11 @@ normalize =
 -- ===========================================================================
 
 
--- | Fetch the course name from the WebOodi url.
-getOodiName :: Text         -- ^ Argument: 
-            -> Maybe Text   -- ^ Return:   
+-- | Fetch the course name from the WebOodi URL. It looks for a HTML tag containing
+-- the text /tauluotsikko\"?>/ to find the name of the course. It then replaces some
+-- sub strings in the course name with Unicode characters.
+getOodiName :: Text         -- ^ Argument: 'Text' containing a raw version of the course name.
+            -> Maybe Text   -- ^ Return:   The Unicode formatted version of the course name.
 getOodiName =
     fmap (T.pack
           . sub "&aring;" "å"
@@ -383,7 +385,7 @@ renderTable root lang pc@PageConf{..} table =
 
 -- | How to render the data of the selected table into HTML using WebOodi
 -- to lookup course names in different languages.
-tableBody :: Lang           -- ^ Argument: The currently used language.
+tableBody :: Lang           -- ^ Argument: The currently used 'Lang'uage.
           -> PageConf       -- ^ Argument: More specific information of the current web page being created.
           -> Table          -- ^ Argument: The source table to use when creating the web page.
           -> Config         -- ^ Argument: Configuration containing specific information about the source table and translation data.
@@ -619,9 +621,11 @@ toCourse Config{..} cats hs iscur xs =
             | otherwise                                = Nothing
 
 
--- | 
-doRepeats :: Text   -- ^ Argument: 
-          -> Text   -- ^ Return:   
+-- | Checks the column @/toistuu/@ from the source 'Table'. If there's anything but
+-- numericals or non-alpha signs, it'll return a 'string' consisting of the '-' sign.
+-- Else it returns the value of the cell.
+doRepeats :: Text   -- ^ Argument: The 'Text' in the cell of the column.
+          -> Text   -- ^ Return:   The value of 'Text' argument if there isn't any alpha characters in the cell.
 doRepeats x | T.any isLetter x = "-"
             | otherwise        = x
 
@@ -653,6 +657,7 @@ accumCategory Config{..} c cs = case L.findIndex (any (`T.isPrefixOf` c)) catego
   where f i = concat $ L.drop i categories
 
 
+-- TODO: Understand what this does
 -- | 
 toCategory :: Config            -- ^ Argument: 
            -> Text              -- ^ Argument: 
@@ -668,9 +673,10 @@ catAt :: Config         -- ^ Argument:
       -> Int            -- ^ Argument: 
       -> Course         -- ^ Argument: 
       -> Maybe Text     -- ^ Return:   
-catAt Config{..} n (cats, _) = case [ c | c <- cats, cr <- categories !! n, cr `T.isPrefixOf` c ] of
-                                   x:_ -> Just x
-                                   _   -> Nothing
+catAt Config{..} n (cats, _) = 
+    case [ c | c <- cats, cr <- categories !! n, cr `T.isPrefixOf` c ] of
+        x:_ -> Just x
+        _   -> Nothing
 
 
 -- | 
