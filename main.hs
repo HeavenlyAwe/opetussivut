@@ -4,6 +4,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
 
+
+-- TODO: Check that all functions have 'Argument' and 'Return' information.
+-- TODO: Check that the usage of Code-blocks in comments is consistent.
+-- TODO: Check that the format is consistent in the comments
+
 ------------------------------------------------------------------------------
 -- | 
 -- Module         : Main
@@ -118,8 +123,12 @@ type Lang = Text
 
 
 -- | Properties for generating individual web page bodies.
-data PageConf = PageConf {  -- See Note [Config and PageConf] below
-              -- Faculty webpage properties
+--
+-- The 'PageConf' data type is used as a data holder for page information
+-- of the generated web pages. Where they are stored, what their titles are
+-- etc.
+data PageConf = PageConf {
+              -- Department web page properties
                 pageId          :: String
               , pageUrl         :: Map Lang Text
               , pageTitle       :: Map Lang Text
@@ -129,7 +138,12 @@ instance Yaml.FromJSON PageConf
 
 -- | Overall properties used by the module to generate HTML code from the
 -- source 'Table' found in the wiki pages.
-data Config   = Config {    -- See Note [Config and PageConf] below
+--
+-- The 'Config' data type is used to read the configuration properties from
+-- the /config.yaml/ file. It holds references to all of the different property
+-- fields and are accessed by their name in the config.yaml file.
+--
+data Config   = Config {
               -- File handling properties
                 rootDir         :: FilePath
               , cacheDir        :: FilePath
@@ -164,9 +178,9 @@ data Table        = Table UTCTime [Header] [Course]
 type Header       = Text
 
 
--- TODO: Change the name of this type to fit its purpose more
 -- | A row in source 'Table'. Each cell of the 'Table' row is mapped to a 'Header', and
--- each cell can have multiple 'Category's coupled to it (see 'Category').
+-- each cell can have multiple 'Category's coupled to it (see 'Category'). The 'ContentBlock'
+-- contains all the information read from the Wiki Table for the specified course.
 type Course       = ([Category], Map Header ContentBlock)
 
 
@@ -187,26 +201,13 @@ type ContentBlock = Text
 type I18N         = Map Text (Map Lang Text)
 
 
-{- Note [Config and PageConf]
-    
-    = Config
-    The 'Config' data type is used to read the configuration properties from
-    the /config.yaml/ file. It holds references to all of the different property
-    fields and are accessed by their name in the config.yaml file.
-    
-    = PageConf
-    The 'PageConf' data type is used as a data holder for page information
-    of the generated web pages. Where they are stored, what their titles are
-    etc.
--}
-
-
 -- ===========================================================================
 -- * Utility functions
 -- ===========================================================================
 
 
--- | Appends /.html/ to the end of the argument.
+-- | Appends /.html/ to the end of the argument. It's mainly used as a helper function
+-- when creating the cache files locally.
 toUrlPath :: Text   -- ^ Argument: The URL without /.html/
           -> Text   -- ^ Return:   The URL with /.html/ at the end
 toUrlPath  = (<> ".html")
@@ -324,10 +325,11 @@ weboodiLang lang
             | otherwise    = ""
 
 
--- TODO: Change the example to use the real base URL found in the /config.yaml/ file
 -- | Creates a hyperlink to use for accessing the selected 'Lang'uage version of WebOodi.
+-- This webpage is later used to access translations for the different course names, when altering the
+-- language on the course listing.
 --
--- The return value has the form of: /[base URL][1/2/6]"&Tunniste="[page ID]/.
+-- The return value has the form of: @https://weboodi.helsinki.fi/hy/opintjakstied.jsp?html=1&Kieli=&Tunniste=[page ID]@.
 weboodiLink :: Text     -- ^ Argument: The base URL of WebOodi.
             -> Lang     -- ^ Argument: Language to use on WebOodi.
             -> Text     -- ^ Argument: WebOodi page ID.
@@ -403,7 +405,8 @@ renderTable :: FilePath     -- ^ Argument: The root to where the HTML file shoul
             -> M ()         -- ^ Return:   ReaderT Config IO, from the generated HTML file.
 renderTable root lang pc@PageConf{..} table =
     ask >>= lift . LT.writeFile fp . renderMarkup . tableBody lang pc table
-  where fp = toFilePath root $ lookupLang lang pageUrl
+  where
+    fp = toFilePath root $ lookupLang lang pageUrl
 
 
 -- ===========================================================================
