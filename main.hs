@@ -733,7 +733,7 @@ cleanAndParse = XML.parseText_ parseSettings . LT.pack . foldl1 (.) regexes . LT
 -- ===========================================================================
 
 
--- | 
+-- | Creates a HTML Table from the cache HTML (in XML format).
 parseTable :: XML.Document  -- ^ Argument: A 'XML.Document' prepared with the 'cleanAndParse' function.
            -> M Table       -- ^ Return:   The parsed 'Table'.
 parseTable doc = head . catMaybes . findTable (fromDocument doc) <$> ask
@@ -782,11 +782,11 @@ getHeader c = return . T.toLower . normalize $ T.unwords (c $// content)
 
 -- | A row is either a category or a course. The @['Category']@ is used as an
 -- accumulator.
-getRow :: Config                        -- ^ Argument: 
-       -> [Header]                      -- ^ Argument: 
-       -> [Category]                    -- ^ Argument: 
-       -> [Cursor]                      -- ^ Argument: 
-       -> ([Category], Maybe Course)    -- ^ Return:   
+getRow :: Config                        -- ^ Argument: Pointer to the 'Config' for use with the @toCategory@ function.
+       -> [Header]                      -- ^ Argument: List of the 'Table' 'Header's.
+       -> [Category]                    -- ^ Argument: A list of 'Category' objects associated with this 'Course'.
+       -> [Cursor]                      -- ^ Argument: The list of unprocessed rows in the 'Table'.
+       -> ([Category], Maybe Course)    -- ^ Return:   A single row, containing 'Category's and the 'Course' data (if any).
 getRow cnf@Config{..} headers cats cs = map (T.unwords . ($// content)) cs `go` head (cs !! 1 $| attribute "class")
   where
     go []        _       = (cats, Nothing)
