@@ -340,7 +340,8 @@ weboodiLink url lang pageId = url <> weboodiLang lang <> "&Tunniste=" <> pageId
 -- TODO: What does this do?
 oodiVar :: MVar (Map (Lang, Text) Text)
 oodiVar = unsafePerformIO newEmptyMVar
-{-# NOINLINE oodiVar #-}
+{-# NOINLINE oodiVar #-}    -- If you are using the @unsafePerformIO@ function like this, it is
+                            -- recommended to use the @NOINLINE@ pragma on the function.
 
 
 -- | Read the course names from the /oodiNameFile/.
@@ -422,8 +423,25 @@ tableBody :: Lang           -- ^ Argument: The currently used 'Lang'uage.
           -> Config         -- ^ Argument: Configuration containing specific information about the source table and translation data.
           -> Html           -- ^ Return:   The generated HTML code.
 tableBody lang page (Table time _ tableContent) cnf@Config{..} =
-    let i18nTranslationOf        = toLang i18n lang
-        translateCourseName code = unsafePerformIO $
+    let i18nTranslationOf            = toLang i18n lang
+        -- | Overriding the translations for some 'String's.
+        i18nTranslationOfPeriod cell
+                                | "?"      <- cell = cell
+                                | "I"      <- cell = cell
+                                | "I-II"   <- cell = cell
+                                | "I-III"  <- cell = cell
+                                | "I-IV"   <- cell = cell
+                                | "I, III" <- cell = cell
+                                | "II"     <- cell = cell
+                                | "II-III" <- cell = cell
+                                | "II-IV"  <- cell = cell
+                                | "II, IV" <- cell = cell
+                                | "III"    <- cell = cell
+                                | "III-IV" <- cell = cell
+                                | "IV"     <- cell = cell
+                                | ""       <- cell = cell
+                                | otherwise        = i18nTranslationOf cell
+        translateCourseName     code = unsafePerformIO $
             runReaderT (i18nCourseNameFromOodi lang code) cnf
 
         -- course table --------------------------------------------------------
@@ -453,7 +471,7 @@ tableBody lang page (Table time _ tableContent) cnf@Config{..} =
                                         $if not (T.null op)
                                             \ (#{op} #{i18nTranslationOf "op"})
 
-                                <td.compact style="width:8%"  title="#{getCellContent colPeriod c}">#{getCellContent colPeriod c}
+                                <td.compact style="width:8%"  title="#{getCellContent colPeriod c}">#{i18nTranslationOfPeriod $ getCellContent colPeriod c}
                                 <td.compact style="width:8%"  title="#{getCellContent colRepeats c}">#{getCellContent colRepeats c}
                                 <td.compact style="width:12%;font-family:monospace" title="#{getCellContent colLang c}">
                                     $case T.words (getCellContent colLang c)
@@ -755,7 +773,6 @@ processTable cnf c = case cells of
     cells = map ($/ anyElement) (c $// element "tr")
 
 
--- TODO: Is it possible to remove the 'Maybe' type from this?
 -- | Create a 'Maybe' 'Header' type corresponding to the value of the raw XML-cell containing information
 -- about the header.
 getHeader :: Cursor         -- ^ Argument: Pointer to the cell containing information about the header.
@@ -799,20 +816,28 @@ toCategory Config{..} t = do
     return $ normalize t
 
 
--- TODO: Understand what this code exactly does.
 -- | Accumulate a 'Category' to a list of 'Category's based on what categories
 -- cannot overlap.
-accumCategory :: Config         -- ^ Argument:
-              -> Category       -- ^ Argument: 
-              -> [Category]     -- ^ Argument: 
-              -> [Category]     -- ^ Return:   
-accumCategory Config{..} c cs = case L.findIndex (any (`T.isPrefixOf` c)) categories of
-    Nothing -> error $ "Unknown category: " ++ show c
-    Just i  -> L.deleteFirstsBy T.isPrefixOf cs (f i) ++ [c]
-  where f i = concat $ L.drop i categories
+--
+-- In the /config.yaml/ file the categories are listed in hierarchial order,
+-- making the once from the top being on the top if more than one category is
+-- found for that particular course.
+--
+-- If the 'Category' to check can be found in the list of @categories@, it will
+-- grab the index in the list of @categories@ for that 'Category' and generate
+-- the new list of 'Category's for the course.
+accumCategory :: Config         -- ^ Argument: Pointer to the 'Config' for access to the @categories@.
+              -> Category       -- ^ Argument: The current 'Category' to check.
+              -> [Category]     -- ^ Argument: The previous 'Category's for the course.
+              -> [Category]     -- ^ Return:   The list containing all 'Category's found for the course this far in the right order.
+accumCategory Config{..} cat cats = case L.findIndex (any (`T.isPrefixOf` cat)) categories of
+    Nothing -> error $ "Unknown category: " ++ show cat
+    Just i  -> L.deleteFirstsBy T.isPrefixOf cats (f i) ++ [cat]
+  where
+    f i = concat $ L.drop i categories
 
 
--- TODO: Add an alternative for 'kesä, kenttä'
+-- TODO: Add an alternative for 'kesä, kenttä', 'kevät, kenttä', 'syksy, kenttä'
 -- | Creates a row for the current 'Table'. The output will differ depending 
 -- on the content in the 'Config' data and the different arguments.
 --
@@ -836,14 +861,14 @@ toCourse Config{..} cats hs iscur xs =
             | x == "III" || x == "IV" || x == "III-IV" = Just "kevät"
             | x == "V"                                 = Just "kesä"
             | x == "I-IV"                              = Just "syksy, kevät"
-            | "kevät" `T.isInfixOf` x                  = Just "kevät"
-            | "syksy" `T.isInfixOf` x                  = Just "syksy"
-            | "kesä"  `T.isInfixOf` x                  = Just "kesä"
+            | "kevät"         `T.isInfixOf` x          = Just "kevät"
+            | "syksy"         `T.isInfixOf` x          = Just "syksy"
+            | "kesä"          `T.isInfixOf` x          = Just "kesä"
             | otherwise                                = Nothing
 
 
--- | Change the format of the @colLang@ column 'Header' in the source 'Table' to be
--- in correct.
+-- | Change the format of the @colLang@ column in the source 'Table' to be
+-- in the correct format.
 --
 --          * Replace different ways of writing languages to the correct 'Lang' format.
 --
