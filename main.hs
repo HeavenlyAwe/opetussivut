@@ -84,7 +84,8 @@ import           Debug.Trace
     different page body for each of the languages.
 -}
 main :: IO ()
-main = trace ("============================================================\n" ++
+main = do
+    trace ("============================================================\n" ++
               " Running Application\n" ++
               "============================================================\n" ++
               " * Decoding config.yaml")
@@ -110,8 +111,16 @@ main = trace ("============================================================\n" +
 -- =============================================================================
 
 
--- TODO: Why is it using the three types, ReaderT Config IO
--- | Short hand for the combination of the three types.
+{- | Creates a monad that handles the assignment of the @Config@ type. It uses
+	the functionality of both the @Reader@ monad and the @IO@ monad.
+
+	@ReaderT@ monad transformer
+	@Config@ the return value of @ask@ function
+	@IO@ monad on which the @Reader@ acts.
+
+	By using this monad, one can read all values of type @Config@ and perform
+	IO actions.
+-}
 type M = ReaderT Config IO
 
 
@@ -144,7 +153,8 @@ instance Yaml.FromJSON PageConf
     The 'Config' data type is used to read the configuration properties from
     the /config.yaml/ file. It holds references to all of the different
     property fields and are accessed by their name in the /config.yaml/ file.
-    The fields are filled with a call to the @'ask'@ function.
+    The fields are filled with the type constructor of @Config@ by a call to 
+	the @'ask'@ function through the @M@ monad.
 -}
 data Config   = Config {
               -- File handling properties
