@@ -84,7 +84,7 @@ import           Debug.Trace
     different page body for each of the languages.
 -}
 main :: IO ()
-main = do
+main =
     trace ("============================================================\n" ++
               " Running Application\n" ++
               "============================================================\n" ++
