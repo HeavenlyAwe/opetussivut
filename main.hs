@@ -174,7 +174,7 @@ data Table        = Table UTCTime [Header] [Course]
                     deriving (Show, Read)
 
 
-{- | Extension of 'Text'. Used as column 'Header's when reading the source
+{- | Synonym of 'Text'. Used as column 'Header's when reading the source
     'Table'.
 -}
 type Header       = Text
@@ -188,7 +188,7 @@ type Header       = Text
 type Course       = ([Category], Map Header ContentBlock)
 
 
-{- | Extension of 'Text'. First column in source 'Table'. Each 'Course' can
+{- | Synonym of 'Text'. First column in source 'Table'. Each 'Course' can
     have several 'Category's (eg. @Pääaineopinnot@, @Perusopinnot@,
     @Pakolliset@, etc).
 -}
@@ -249,9 +249,9 @@ toUrlPath  = (<> ".html")
     The PHP-engine used on physics.helsinki.fi utilizes a own /.html/ file
     extension (/.body/) to show HTML output in the center of the page.
 -}
-toFilePath :: FilePath  -- ^ Argument: The root directory.
-           -> Text      -- ^ Argument: The file name.
-           -> FilePath  -- ^ Return:   @root/filename.body@.
+toFilePath :: FilePath  -- ^ The root directory.
+           -> Text      -- ^ The file name.
+           -> FilePath  -- ^ @root/filename.body@.
 toFilePath root = (root <>) . T.unpack . (<> ".body")
 
 
@@ -260,7 +260,7 @@ toFilePath root = (root <>) . T.unpack . (<> ".body")
     WebOodi's HTML is just horrible (imo it's not even HTML), so we use another
     regex to parse it (before the XML parser is used).
 -}
-regexes :: [String -> String]   -- ^ Return: A list of functions for removing HTML-tags
+regexes :: [String -> String]   -- ^ A list of functions for removing HTML-tags
 regexes = [ rm "<meta [^>]*>", rm "<link [^>]*>", rm "<link [^>]*\">", rm "<img [^>]*>"
           , rm "<br[^>]*>", rm "<col [^>]*>" ]
   where
@@ -275,10 +275,10 @@ regexes = [ rm "<meta [^>]*>", rm "<link [^>]*>", rm "<link [^>]*\">", rm "<img 
     'Lang'uage in this case is not Finnish it will also warn the user that no
     translation for the selected 'Text' can be found.
 -}
-toLang :: I18N  -- ^ Argument: The 'I18N' database to fetch translations from.
-       -> Lang  -- ^ Argument: The 'Lang'uage to fetch translation for.
-       -> Text  -- ^ Argument: The 'Text' to translate.
-       -> Text  -- ^ Return:   The translation of the input 'Text'.
+toLang :: I18N  -- ^ The 'I18N' database to fetch translations from.
+       -> Lang  -- ^ The 'Lang'uage to fetch translation for.
+       -> Text  -- ^ The 'Text' to translate.
+       -> Text  -- ^ The translation of the input 'Text'.
 toLang db lang key = maybe (trace ("!!! Warning: no i18n db for key `" ++ T.unpack key ++ "'") key)
                            (fromMaybe fallback . Map.lookup lang) (Map.lookup key db)
   where
