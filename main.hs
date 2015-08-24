@@ -86,9 +86,9 @@ import           Debug.Trace
 main :: IO ()
 main =
     trace ("============================================================\n" ++
-              " Running Application\n" ++
-              "============================================================\n" ++
-              " * Decoding config.yaml")
+           " Running Application\n" ++
+           "============================================================\n" ++
+           " * Decoding config.yaml")
     Yaml.decodeFileEither "config.yaml" >>= either (error . show) (runReaderT go)
   where
     go = do
